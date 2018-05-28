@@ -136,7 +136,7 @@ bool uiInit()
 	memset(&wc,0,sizeof(wc));
 	wc.cbClsExtra		= 0;
 	wc.cbWndExtra		= 0;
-	wc.hbrBackground	= (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wc.hbrBackground	= (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wc.hCursor			= LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon			= LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_NDC_ICON));
 	wc.hInstance		= g_hInst;
@@ -163,8 +163,6 @@ bool uiInit()
 		return false;
 	}
 	
-	SetMenu(g_hWnd,GetHMenu());
-	
 	RECT r= { 0,0,640,480};
 	AdjustWindowRectEx(&r,GetWindowLong(g_hWnd,GWL_STYLE),GetMenu(g_hWnd)!=NULL,GetWindowLong(g_hWnd,GWL_EXSTYLE));
 
@@ -179,9 +177,7 @@ bool uiInit()
 		SetFocus(g_hWnd);
 
 	if (settings.Fullscreen)
-	{
 		ToggleFullscreen(g_hWnd);
-	}
 
 	MSG msg;
 	while( PeekMessage( &msg, NULL, 0, 0 ,TRUE) != 0)
@@ -1075,91 +1071,26 @@ void ToggleFullscreen(HWND hWnd)
 		SetWindowPos( hWnd, NULL, oldrect.left, oldrect.top, r.right - r.left, r.bottom - r.top,SWP_NOZORDER) ;
 	}
 }
-static CPicture ndclogo;
+
 LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 {
 	static RECT rc;
-	//printf("msg %X\n",uMsg);
-	//OleSavePictureFile
+
 	switch(uMsg)
 	{
 	case WM_PAINT:
-		//ndclogo
 		{
-			if (EmuStarted())
-				break;
-			PAINTSTRUCT ps; 
-			HDC hdc; 
-			RECT rc;
-			hdc = BeginPaint(hWnd, &ps); 
-			GetClientRect(hWnd, &rc); 
-			int width=(rc.right-rc.left);
-			int height=(rc.bottom-rc.top);
-			SIZE hm=ndclogo.GetImageSize(hdc);
-			long hmWidth=hm.cx,hmHeight=hm.cy; // HIMETRIC units
-			//ndclogo.GetHIMETRICSize(hmWidth, hmHeight);
-
-			int h=(int)(hmHeight*width/(float)hmWidth+0.5f);
-			int w=(int)(hmWidth*height/(float)hmHeight+0.5f);
-			
-			if (h>height)
-			{
-				h=height;
-			}
-			else
-			{
-				w=width;
-			}
-			int dx=width-w;
-			int dy=height-h;
-			
-			rc.left=0;
-			rc.right=hmWidth;
-
-			rc.top=0;
-			rc.bottom=hmHeight;
-
-			SetStretchBltMode(hdc,HALFTONE);
-
-			HDC memDC = CreateCompatibleDC ( hdc );
-			HBITMAP memBM = CreateCompatibleBitmap ( hdc, hmWidth, hmHeight );
-			SelectObject ( memDC, memBM );
-			ndclogo.Render(memDC,&rc);
-			StretchBlt(hdc,dx/2,dy/2,w,h,memDC,0,0,hmWidth,hmHeight,SRCCOPY);
-
-			//LEFT
-			StretchBlt(hdc,0,0,dx/2,height,memDC,0,0,1,hmHeight,SRCCOPY);
-
-			//RIGHT
-			StretchBlt(hdc,dx/2+w,0,dx-dx/2,height,memDC,hmWidth-1,0,1,hmHeight,SRCCOPY);
-
-			//TOP
-			StretchBlt(hdc,0,0,width,dy/2,memDC,0,0,hmWidth,1,SRCCOPY);
-
-			//BOTTOM
-			StretchBlt(hdc,0,dy/2+h,width,dy-dy/2,memDC,0,hmHeight-1,hmWidth,1,SRCCOPY);
-
-			DeleteObject(memBM);
-			DeleteDC(memDC);
-
-			/*
-			SetMapMode(hdc, MM_ANISOTROPIC); 
-			SetWindowExtEx(hdc, 100, 100, NULL); 
-			SetViewportExtEx(hdc, rc.right, rc.bottom, NULL); 
-			Polyline(hdc, aptStar, 6); 
-			*/
-			
-			EndPaint(hWnd, &ps); 
-			return 0L; 
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+			FillRect(hdc, &ps.rcPaint, (HBRUSH)GetStockObject(BLACK_BRUSH));
+			EndPaint(hWnd, &ps);
 		}
 		break;
 	case WM_ERASEBKGND:
 		{
-			
 			return TRUE;
 		}
 		break;
-
 	case WM_TIMER:
 		{
 			POINT cp;
@@ -1196,8 +1127,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	case WM_CREATE:
 		{
 			InitCommonControls();
-			ndclogo.Load(g_hInst,IDR_NDC_LOGO);
-			mouse_hidden=30;
+			mouse_hidden=0;
+			SetMouseState(hWnd, false);
 			SetTimer(hWnd,0,1000,0);
 		}
 		break;
